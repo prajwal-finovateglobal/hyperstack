@@ -36,5 +36,5 @@ echo "=== Step 7: Run the vLLM Server (GPT-OSS-20B on A100) ==="
 vllm serve openai/gpt-oss-20b \
   --port 8000 \
   --gpu-memory-utilization 0.9 \
-  --max-model-len 8192 \
+  --max-model-len 16384 \
   --async-scheduling

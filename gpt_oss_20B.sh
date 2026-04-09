@@ -66,7 +66,7 @@ echo "🚀 Server running at: http://localhost:8000"
 
 vllm serve openai/gpt-oss-20b \
   --port 8000 \
-  --gpu-memory-utilization 0.9 \
+  --gpu-memory-utilization 0.85 \
   --max-model-len 16384 \
   --tensor-parallel-size 1 \
   --async-scheduling

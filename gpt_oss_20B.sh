@@ -63,10 +63,10 @@ sudo systemctl start unattended-upgrades || true
 
 echo "=== Step 8: Start vLLM Server ==="
 echo "🚀 Server running at: http://localhost:8000"
-
 vllm serve openai/gpt-oss-20b \
   --port 8000 \
-  --gpu-memory-utilization 0.85 \
-  --max-model-len 16384 \
+  --gpu-memory-utilization 0.75 \
+  --max-model-len 8192 \
+  --max-num-seqs 16 \
   --tensor-parallel-size 1 \
-  --async-scheduling
+  --max-num-batched-tokens 8192

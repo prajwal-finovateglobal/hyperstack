@@ -42,10 +42,14 @@ echo "=== Step 4: Upgrade pip and install compatible setuptools ==="
 pip install --upgrade pip
 pip install "setuptools<81" wheel
 
-echo "=== Step 5: Install vLLM (auto installs correct torch) ==="
-pip install vllm
+echo "=== Step 5: Install PyTorch (CUDA 12.1 compatible) ==="
+pip install torch==2.3.0+cu121 torchvision torchaudio \
+  --index-url https://download.pytorch.org/whl/cu121
 
-echo "=== Step 6: Verify PyTorch + CUDA ==="
+echo "=== Step 6: Install vLLM without upgrading torch ==="
+pip install vllm --no-deps
+pip install -r <(pip show vllm | grep Requires | cut -d: -f2 | tr ',' '\n')
+
 python3 - <<EOF
 import torch
 print("Torch Version:", torch.__version__)

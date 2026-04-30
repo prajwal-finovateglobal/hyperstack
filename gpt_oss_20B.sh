@@ -14,17 +14,19 @@ sudo add-apt-repository ppa:deadsnakes/ppa -y
 sudo apt update -y
 sudo apt install -y python3.12 python3.12-venv python3.12-dev
 
-echo "=== Step 3: Create Virtual Environment ==="
+echo "=== Step 3: Install uv (fast Python package manager) ==="
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+
+echo "=== Step 4: Create Virtual Environment ==="
 rm -rf .venv
-python3.12 -m venv .venv
+uv venv .venv --python 3.12
 source .venv/bin/activate
 
-echo "=== Step 4: Upgrade pip ==="
-pip install --upgrade pip
-pip install "setuptools<81" wheel
-
-echo "=== Step 5: Install vLLM (latest, auto-installs torch for CUDA 12.8) ==="
-pip install vllm
+echo "=== Step 5: Install vLLM with CUDA 12.9 backend (compatible with driver 12.8) ==="
+# --torch-backend=cu129 installs torch compiled for CUDA 12.9
+# which is backward compatible with CUDA 12.8 driver
+uv pip install vllm --torch-backend=cu129
 
 echo "=== Step 6: Fix pyairports (outlines dependency bug) ==="
 mkdir -p .venv/lib/python3.12/site-packages/pyairports
@@ -42,18 +44,13 @@ print("GPU:", torch.cuda.get_device_name(0))
 print("✅ CUDA OK")
 EOF
 
-echo "=== Step 8: Set HuggingFace token (required for gated model) ==="
-# Get your token from https://huggingface.co/settings/tokens
-# Then run: export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx
-if [ -z "$HF_TOKEN" ]; then
-    echo "⚠️  HF_TOKEN not set. Model download may fail if gated."
-    echo "    Run: export HF_TOKEN=hf_your_token_here"
-    echo "    Then re-run this script or just Step 9."
-fi
-
-echo "=== Step 9: Start vLLM Server ==="
+echo "=== Step 8: Start vLLM Server ==="
 echo "🚀 Server starting at: http://0.0.0.0:8000"
-echo "   OpenAI-compatible API: http://0.0.0.0:8000/v1"
+
+export HF_TOKEN=${HF_TOKEN:-""}
+if [ -z "$HF_TOKEN" ]; then
+    echo "⚠️  HF_TOKEN not set — set it with: export HF_TOKEN=hf_xxxx"
+fi
 
 vllm serve openai/gpt-oss-20b \
   --host 0.0.0.0 \

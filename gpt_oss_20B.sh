@@ -6,12 +6,7 @@ sudo systemctl stop unattended-upgrades || true
 sudo systemctl disable unattended-upgrades || true
 
 echo "=== Step 1: Check for NVIDIA GPU ==="
-if command -v nvidia-smi &> /dev/null; then
-    nvidia-smi && echo "✅ GPU detected" || { echo "❌ GPU not working"; exit 1; }
-else
-    echo "❌ nvidia-smi not found. Install NVIDIA drivers first."
-    exit 1
-fi
+nvidia-smi && echo "✅ GPU detected" || { echo "❌ GPU not working"; exit 1; }
 
 echo "=== Step 2: Install Python 3.12 ==="
 sudo add-apt-repository ppa:deadsnakes/ppa -y
@@ -27,26 +22,32 @@ echo "=== Step 4: Upgrade pip ==="
 pip install --upgrade pip
 pip install "setuptools<81" wheel
 
-echo "=== Step 5: Install PyTorch for CUDA 12.2 FIRST ==="
-# Pin torch to CUDA 12.1 wheel (compatible with driver CUDA 12.2)
+echo "=== Step 5: Install PyTorch for CUDA 12.1 ==="
 pip install torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 \
     --index-url https://download.pytorch.org/whl/cu121
 
-echo "=== Step 6: Install vLLM (no-deps for torch, then install rest) ==="
-# Install vLLM but tell it not to overwrite torch
-pip install vllm --extra-index-url https://download.pytorch.org/whl/cu121
-
-echo "=== Step 7: Verify PyTorch + CUDA ==="
-python3 - <<EOF
+echo "=== Step 6: Verify CUDA before installing vLLM ==="
+python3 -c "
 import torch
-print("Torch Version:", torch.__version__)
-print("CUDA Available:", torch.cuda.is_available())
+print('Torch Version:', torch.__version__)
+print('CUDA Available:', torch.cuda.is_available())
 if not torch.cuda.is_available():
-    raise RuntimeError("❌ CUDA not available. GPU setup failed.")
-print("GPU:", torch.cuda.get_device_name(0))
-EOF
+    raise RuntimeError('❌ CUDA not available. Aborting.')
+print('GPU:', torch.cuda.get_device_name(0))
+"
 
-echo "=== Step 8: Start vLLM Server ==="
+echo "=== Step 7: Install vLLM 0.5.5 (compatible with torch 2.3.x + CUDA 12) ==="
+pip install vllm==0.5.5
+
+echo "=== Step 8: Final CUDA check ==="
+python3 -c "
+import torch
+print('Torch Version:', torch.__version__)
+print('CUDA Available:', torch.cuda.is_available())
+print('GPU:', torch.cuda.get_device_name(0))
+"
+
+echo "=== Step 9: Start vLLM Server ==="
 echo "🚀 Server running at: http://localhost:8000"
 vllm serve openai/gpt-oss-20b \
   --port 8000 \
